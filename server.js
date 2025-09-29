@@ -1,17 +1,23 @@
+// Load environment variables from .env
+require('dotenv').config();
+
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 
 const app = express();
 const PORT = 3000;
-const SECRET_KEY = "supersecretkey"; // ⚠️ change in production!
 
+// Use environment variables
+const SECRET_KEY = process.env.SECRET_KEY;
+
+// Parse JSON requests
 app.use(express.json());
 
-// ✅ Connect to MongoDB Atlas
-mongoose.connect("mongodb+srv://dispatchUser:Dispatch123@cluster0.ycdin1s.mongodb.net/dispatchDB?retryWrites=true&w=majority&appName=Cluster0")
-.then(() => console.log("✅ Connected to MongoDB"))
-.catch(err => console.error("❌ MongoDB connection error:", err));
+// ✅ Connect to MongoDB using .env
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("✅ Connected to MongoDB"))
+  .catch(err => console.error("❌ MongoDB connection error:", err));
 
 /* ================================
    Schemas & Models
@@ -39,7 +45,7 @@ const deliverySchema = new mongoose.Schema({
 const Delivery = mongoose.model("Delivery", deliverySchema);
 
 /* ================================
-   Authentication Middleware
+   Middleware: JWT Authentication
 ================================= */
 function authenticate(req, res, next) {
   const token = req.headers["authorization"];
@@ -55,6 +61,11 @@ function authenticate(req, res, next) {
 /* ================================
    Routes
 ================================= */
+
+// Root route
+app.get("/", (req, res) => {
+  res.send("Welcome to Dispatch App API 🚀");
+});
 
 // Register user
 app.post("/register", async (req, res) => {
@@ -104,7 +115,7 @@ app.post("/deliveries", authenticate, async (req, res) => {
   }
 });
 
-// Get all deliveries for logged-in user (protected)
+// Get deliveries for logged-in user (protected)
 app.get("/deliveries", authenticate, async (req, res) => {
   try {
     const deliveries = await Delivery.find({ userId: req.user.id });
@@ -114,12 +125,9 @@ app.get("/deliveries", authenticate, async (req, res) => {
   }
 });
 
-// Root route
-app.get("/", (req, res) => {
-  res.send("Welcome to Dispatch App API 🚀");
-});
-
-// Start server
+/* ================================
+   Start Server
+================================= */
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
